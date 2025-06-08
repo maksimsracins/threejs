@@ -1,45 +1,14 @@
 import * as THREE from 'three'
+import gsap from 'gsap'
 
 //Scene
 const scene = new THREE.Scene()
 
 //Object
-
-const group = new THREE.Group()
-
-const cube1 = new THREE.Mesh(
-  new THREE.BoxGeometry(1,1,1),
-  new THREE.MeshBasicMaterial({color: 0xff0000})
-)
-cube1.position.x = -1.5
-group.add(cube1)
-
-const cube2 = new THREE.Mesh(
-  new THREE.BoxGeometry(1,1,1),
-  new THREE.MeshBasicMaterial({color: 0xff0000})
-)
-cube2.position.x = 0
-group.add(cube2)
-
-scene.add(group)
-
-
 const geometry = new THREE.BoxGeometry(1, 1, 1)
 const material = new THREE.MeshBasicMaterial({color: 0xff0000})
 const mesh = new THREE.Mesh(geometry, material)
 const axesHelper = new THREE.AxesHelper(2);
-
-
-mesh.position.x = 0.7
-mesh.position.y = -0.6
-mesh.position.z = 1
-
-mesh.scale.x = 2
-mesh.scale.y = 0.25
-mesh.scale.z = 0.5
-
-mesh.rotation.x = Math.PI * 0.25
-mesh.rotation.y = Math.PI * 0.25
 
 
 
@@ -56,7 +25,6 @@ const sizes = {
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height)
 
 camera.position.z = 3
-camera.lookAt(new THREE.Vector3(0, -1, 0))
 
 scene.add(camera)
 
@@ -69,4 +37,25 @@ const renderer = new THREE.WebGLRenderer({
 })
 renderer.setSize(sizes.width, sizes.height)
 
-renderer.render(scene, camera)
+//const clock = new THREE.Clock()
+gsap.to(mesh.position, {duration: 1, delay: 1, x: 2})
+gsap.to(mesh.position, {duration: 1, delay: 2, x: 0})
+
+//Animations
+const loop = () => {
+
+  //Time
+  //const elapsedTime = clock.getElapsedTime()
+
+  //Update object
+  //camera.position.y = Math.sin(elapsedTime)
+  //camera.position.x = Math.cos(elapsedTime)
+  //camera.lookAt(mesh.position)
+
+  //Render
+  renderer.render(scene, camera)
+
+  window.requestAnimationFrame(loop);
+}
+
+loop()
