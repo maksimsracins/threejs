@@ -1,47 +1,19 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import imageSource from '../static/textures/checkerboard-8x8.png'
+import GUI from 'lil-gui'
+//import typefaceFont from 'three/examples/fonts/helvetiker_regular.typeface.json'
+import {FontLoader} from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
+import { depth } from 'three/tsl'
+
+
+
 
 /**
- * Textures
+ * Base
  */
-const loadingManager = new THREE.LoadingManager()
-
-// loadingManager.onStart = () => {
-
-// }
-// loadingManager.onLoad = () => {
-
-// }
-// loadingManager.onProgress = () => {
-
-// }
-// loadingManager.onError = () => {
-// }
-
-const textureLoader = new THREE.TextureLoader(loadingManager)
-// const alphaTexture = textureLoader.load('../static/textures/door/alpha.jpg')
-// const heightTexture = textureLoader.load('../static/textures/door/height.jpg')
-// const ambientOcclusionTexture = textureLoader.load('../static/textures/door/ambientOcclusion.jpg')
-// const metalnessTexture = textureLoader.load('../static/textures/door/metalness.jpg')
-// const normalTexture = textureLoader.load('../static/textures/door/normal.jpg')
-// const roughnessTexture = textureLoader.load('../static/textures/door/roughness.jpg')
-
-const colorTexture = textureLoader.load(imageSource)
-
-// colorTexture.repeat.x = 2
-// colorTexture.repeat.y = 3
-// colorTexture.wrapS = THREE.RepeatWrapping
-// colorTexture.wrapT = THREE.MirroredRepeatWrapping
-// colorTexture.offset.x = 0.5
-// colorTexture.offset.y = 0.5
-//  colorTexture.rotation = Math.PI * 0.25
-//  colorTexture.center.x = 0.5
-//     colorTexture.center.y = 0.5
-
-colorTexture.generateMipmaps = false 
-colorTexture.minFilter = THREE.MipMap
-// colorTexture.magFilter = THREE.MipMap
+// Debug
+const gui = new GUI()
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
@@ -49,15 +21,86 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
+// Axes helper
+
+const axesHelper = new THREE.AxesHelper()
+
+scene.add(axesHelper)
+
+/**
+ * Textures
+ */
+const textureLoader = new THREE.TextureLoader()
+const matcapTexture = textureLoader.load('/textures/matcaps/1.png')
+matcapTexture.colorSpace = THREE.SRGBColorSpace
+
+const fontLoader = new FontLoader()
+
+fontLoader.load(
+    '/fonts/helvetiker_regular.typeface.json',
+    (font) => {
+        const textGeometry = new TextGeometry(
+            'Eleonora Nesterova',{
+                font: font,
+                size: 0.5,
+                depth: 0.2,
+                curveSegments: 5,
+                bevelEnabled: true,
+                bevelThickness: 0.03,
+                bevelSize: 0.03,
+                bevelOffset: 0,
+                bevelSegments: 4
+            }
+        )
+
+        // textGeometry.computeBoundingBox();
+        // console.log(textGeometry.boundingBox)
+        // textGeometry.translate(
+        //     -(textGeometry.boundingBox.max.x -0.02)* 0.5,
+        //     -(textGeometry.boundingBox.max.y - 0.02)* 0.5,
+        //     -(textGeometry.boundingBox.max.z -0.03) *0.5,
+        // )
+
+        textGeometry.center()
+          
+        const textMaterial = new THREE.MeshMatcapMaterial({matcap: matcapTexture})
+        const text = new THREE.Mesh(textGeometry, textMaterial)
+        scene.add(text)
+
+        console.time('donuts')
+
+        const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 20, 45)
+        let randomValue = 1;
+
+        for (let i = 0; i < 100; i++){
+            randomValue = Math.floor(Math.random() * 8) +1
+            const donutMaterial = new THREE.MeshMatcapMaterial(
+                {
+                    matcap: textureLoader.load(`/textures/matcaps/${randomValue}.png`)
+                }
+            )
+            const donut = new THREE.Mesh(donutGeometry, donutMaterial)
+
+            donut.position.x = (Math.random() - 0.5) * 10
+            donut.position.y = (Math.random() - 0.5) * 10
+            donut.position.z = (Math.random() - 0.5) * 10
+
+            donut.rotation.x = Math.random() * Math.PI
+
+            const scale = Math.random()
+            donut.scale.set(scale, scale, scale)
+
+
+            scene.add(donut)
+        }
+        console.timeEnd('donuts')
+    }
+)
+
 /**
  * Object
- */
-const geometry = new THREE.BoxGeometry(1, 1, 1)
-console.log(geometry.attributes.uv)
-const material = new THREE.MeshBasicMaterial({map:colorTexture})
-colorTexture.colorSpace = THREE.SRGBColorSpace; // Ensure the texture is in sRGB color space
-const mesh = new THREE.Mesh(geometry, material)
-scene.add(mesh)
+ */ 
+
 
 /**
  * Sizes
@@ -89,7 +132,7 @@ window.addEventListener('resize', () =>
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
 camera.position.x = 1
 camera.position.y = 1
-camera.position.z = 1
+camera.position.z = 2
 scene.add(camera)
 
 // Controls
