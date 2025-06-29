@@ -1,13 +1,6 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-//import typefaceFont from 'three/examples/fonts/helvetiker_regular.typeface.json'
-import {FontLoader} from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
-import { depth } from 'three/tsl'
-
-
-
 
 /**
  * Base
@@ -21,86 +14,83 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
-// Axes helper
+/**
+ * Lights
+ */
+const ambientLight = new THREE.AmbientLight(0xffffff, 1)
+gui.add(ambientLight, 'intensity').min(0).max(10).step(0.01).name('Ambient Light Intensity')
+ambientLight.color = new THREE.Color(0xFFFFFF)
+//scene.add(ambientLight)
 
-const axesHelper = new THREE.AxesHelper()
+const directionalLight = new THREE.DirectionalLight(0xfffff, 1)
+directionalLight.position.set(1, 0.25, 0)
+gui.add(directionalLight, 'intensity').min(0).max(10).step(0.01).name('Directional Light Intensity')
+//scene.add(directionalLight)
 
-scene.add(axesHelper)
+const hemisphereLight = new THREE.HemisphereLight(0x00ff00, 0x0000ff, 1)
+scene.add(hemisphereLight)
+ 
+const pointLight = new THREE.PointLight(0xff0000, 1, 10)
+pointLight.position.set(1, 0, 1)
+scene.add(pointLight)
+
+const rectAreaLight = new THREE.RectAreaLight(0x00ff00, 1, 1, 2)
+rectAreaLight.position.set(0, 1, 0)
+rectAreaLight.lookAt(new THREE.Vector3(0, 0, 0))
+gui.add(rectAreaLight, 'intensity').min(0).max(10).step(0.01).name('Rect Area Light Intensity')
+scene.add(rectAreaLight)
+
+const spotLight = new THREE.SpotLight(0x0000ff, 1, 10, Math.PI * 0.2, 0.25, 1)
+scene.add(spotLight)
+
+// Helpers
+
+const hemisphereLightHelper = new THREE.HemisphereLightHelper(hemisphereLight, 0.2)
+hemisphereLightHelper.visible = true // Set to true to see the helper
+scene.add(hemisphereLightHelper)
+
+const directionalLightHelper = new THREE.DirectionalLightHelper(directionalLight, 0.2)
+directionalLightHelper.visible = true // Set to true to see the helper
+scene.add(directionalLightHelper)
+
+const pointLightHelper = new THREE.PointLightHelper(pointLight, 0.2)
+pointLightHelper.visible = true // Set to true to see the helper
+scene.add(pointLightHelper)
+
 
 /**
- * Textures
+ * Objects
  */
-const textureLoader = new THREE.TextureLoader()
-const matcapTexture = textureLoader.load('/textures/matcaps/1.png')
-matcapTexture.colorSpace = THREE.SRGBColorSpace
+// Material
+const material = new THREE.MeshStandardMaterial()
+material.roughness = 0.4
 
-const fontLoader = new FontLoader()
+// Objects
+const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 32, 32),
+    material
+)
+sphere.position.x = - 1.5
 
-fontLoader.load(
-    '/fonts/helvetiker_regular.typeface.json',
-    (font) => {
-        const textGeometry = new TextGeometry(
-            'Eleonora Nesterova',{
-                font: font,
-                size: 0.5,
-                depth: 0.2,
-                curveSegments: 5,
-                bevelEnabled: true,
-                bevelThickness: 0.03,
-                bevelSize: 0.03,
-                bevelOffset: 0,
-                bevelSegments: 4
-            }
-        )
-
-        // textGeometry.computeBoundingBox();
-        // console.log(textGeometry.boundingBox)
-        // textGeometry.translate(
-        //     -(textGeometry.boundingBox.max.x -0.02)* 0.5,
-        //     -(textGeometry.boundingBox.max.y - 0.02)* 0.5,
-        //     -(textGeometry.boundingBox.max.z -0.03) *0.5,
-        // )
-
-        textGeometry.center()
-          
-        const textMaterial = new THREE.MeshMatcapMaterial({matcap: matcapTexture})
-        const text = new THREE.Mesh(textGeometry, textMaterial)
-        scene.add(text)
-
-        console.time('donuts')
-
-        const donutGeometry = new THREE.TorusGeometry(0.3, 0.2, 20, 45)
-        let randomValue = 1;
-
-        for (let i = 0; i < 100; i++){
-            randomValue = Math.floor(Math.random() * 8) +1
-            const donutMaterial = new THREE.MeshMatcapMaterial(
-                {
-                    matcap: textureLoader.load(`/textures/matcaps/${randomValue}.png`)
-                }
-            )
-            const donut = new THREE.Mesh(donutGeometry, donutMaterial)
-
-            donut.position.x = (Math.random() - 0.5) * 10
-            donut.position.y = (Math.random() - 0.5) * 10
-            donut.position.z = (Math.random() - 0.5) * 10
-
-            donut.rotation.x = Math.random() * Math.PI
-
-            const scale = Math.random()
-            donut.scale.set(scale, scale, scale)
-
-
-            scene.add(donut)
-        }
-        console.timeEnd('donuts')
-    }
+const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(0.75, 0.75, 0.75),
+    material
 )
 
-/**
- * Object
- */ 
+const torus = new THREE.Mesh(
+    new THREE.TorusGeometry(0.3, 0.2, 32, 64),
+    material
+)
+torus.position.x = 1.5
 
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 5),
+    material
+)
+plane.rotation.x = - Math.PI * 0.5
+plane.position.y = - 0.65
+
+scene.add(sphere, cube, torus, plane)
 
 /**
  * Sizes
@@ -156,6 +146,15 @@ const clock = new THREE.Clock()
 const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
+
+    // Update objects
+    sphere.rotation.y = 0.1 * elapsedTime
+    cube.rotation.y = 0.1 * elapsedTime
+    torus.rotation.y = 0.1 * elapsedTime
+
+    sphere.rotation.x = 0.15 * elapsedTime
+    cube.rotation.x = 0.15 * elapsedTime
+    torus.rotation.x = 0.15 * elapsedTime
 
     // Update controls
     controls.update()
