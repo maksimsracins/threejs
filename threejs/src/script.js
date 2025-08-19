@@ -1,14 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import GUI from 'lil-gui'
-
-
-const textureLoader = new THREE.TextureLoader()
-const bakedShadowTexture = textureLoader.load('/textures/bakedShadow.jpg')
-bakedShadowTexture.colorSpace = THREE.SRGBColorSpace
-
-const simpleShadowTexture = textureLoader.load('/textures/simpleShadow.jpg')
-
+import { alphaT } from 'three/tsl'
 
 /**
  * Base
@@ -22,114 +15,50 @@ const canvas = document.querySelector('canvas.webgl')
 // Scene
 const scene = new THREE.Scene()
 
-
 /**
- * Lights
+ * Textures
  */
-// Ambient light
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.3)
-gui.add(ambientLight, 'intensity').min(0).max(3).step(0.001)
-scene.add(ambientLight)
+const textureLoader = new THREE.TextureLoader()
+const particleTexture = textureLoader.load('/textures/particles/10.png')
 
-// Directional light
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4)
-directionalLight.position.set(2, 2, - 1)
-gui.add(directionalLight, 'intensity').min(0).max(3).step(0.001)
-gui.add(directionalLight.position, 'x').min(- 5).max(5).step(0.001)
-gui.add(directionalLight.position, 'y').min(- 5).max(5).step(0.001)
-gui.add(directionalLight.position, 'z').min(- 5).max(5).step(0.001)
-directionalLight.castShadow = true
-directionalLight.shadow.mapSize.width = 1024
-directionalLight.shadow.mapSize.height = 1024
-directionalLight.shadow.camera.near = 1
-directionalLight.shadow.camera.far = 6
-directionalLight.shadow.camera.top = 2
-directionalLight.shadow.camera.left = -2
-directionalLight.shadow.camera.right = 2
-directionalLight.shadow.camera.bottom = -2
-directionalLight.shadow.radius = 10
+const particlesGeometry = new THREE.BufferGeometry();
+const count = 20000;
 
-const directionalLightCameraHelper = new THREE.CameraHelper(directionalLight.shadow.camera)
-directionalLight.shadow.camera 
-directionalLightCameraHelper.visible = false
-scene.add(directionalLight, directionalLightCameraHelper)
+const positions = new Float32Array(count * 3);
+const colors = new Float32Array(count * 3);
 
-const spotLight = new THREE.SpotLight(0xffffff, 0.3, 10, Math.PI * 0.3)
-spotLight.castShadow = true
-spotLight.shadow.mapSize.width = 1024
-spotLight.shadow.mapSize.height = 1024
-spotLight.shadow.camera.near = 1
-spotLight.shadow.camera.far = 6
-spotLight.position.set(0,2,2)
-scene.add(spotLight)
-scene.add(spotLight.target)
+for (let i = 0; i < count * 3; i++) {
+    positions[i] = (Math.random() - 0.5) * 10;
+    colors[i] = Math.random();
+}
 
-const spotLightCameraHelper = new THREE.CameraHelper(spotLight.shadow.camera)
-//scene.add(spotLightCameraHelper)
-//spotLight.visible = false
-
-spotLight.position.set(0, 2, 2)
-//scene.add(spotLightCameraHelper)
-
-const pointLight = new THREE.PointLight(0xffffff,2.7)
-pointLight.castShadow = true
-pointLight.position.set(-1, 1, 0)
-pointLight.shadow.mapSize.height = 1024
-pointLight.shadow.mapSize.width = 1024
-pointLight.shadow.camera.near = 0.1
-pointLight.shadow.camera.far = 6
-
-
-scene.add(pointLight)
-
-const pointLightCameraHelper = new THREE.CameraHelper(pointLight.shadow.camera);
-pointLightCameraHelper.visible = false
-scene.add(pointLightCameraHelper)
-
-
-/**
- * Materials
- */
-const material = new THREE.MeshStandardMaterial()
-material.roughness = 0.7
-gui.add(material, 'metalness').min(0).max(1).step(0.001)
-gui.add(material, 'roughness').min(0).max(1).step(0.001)
-
-/**
- * Objects
- */
-const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 32, 32),
-    material
+particlesGeometry.setAttribute(
+    'position',
+    new THREE.BufferAttribute(positions, 3),
+)
+particlesGeometry.setAttribute(
+    'color',
+    new THREE.BufferAttribute(colors, 3),
 )
 
-sphere.castShadow = true
+const particlesMaterial = new THREE.PointsMaterial({
+    size: 0.05,
+    sizeAttenuation: true,
+    // color: new THREE.Color('#ff88cc'),
+    alphaMap: particleTexture,
+    transparent: true,
+    // alphaTest: 0.001,
+    // depthTest: false
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+    vertexColors: true,
+});
 
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 5),
-    new THREE.MeshBasicMaterial({
-        map: bakedShadowTexture
-    })
-)
-plane.rotation.x = - Math.PI * 0.5
-plane.position.y = - 0.5
 
-plane.receiveShadow = true
 
-scene.add(sphere, plane)
+const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+scene.add(particles);
 
-const sphereShadow = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.5,1.5),
-    new THREE.MeshBasicMaterial({
-        color:0x000000,
-        transparent: true,
-        alphaMap: simpleShadowTexture
-    })
-)
-sphereShadow.rotation.x = -Math.PI * 0.5
-sphereShadow.position.y = plane.position.y + 0.01
-
-scene.add(sphereShadow)
 
 /**
  * Sizes
@@ -159,9 +88,7 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 1
-camera.position.y = 1
-camera.position.z = 2
+camera.position.z = 3
 scene.add(camera)
 
 // Controls
@@ -176,12 +103,6 @@ const renderer = new THREE.WebGLRenderer({
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.shadowMap.enabled = true
-
-renderer.shadowMap.type  = THREE.PCFShadowMap
-
-renderer.shadowMap.enabled = false
-
 
 /**
  * Animate
@@ -192,14 +113,16 @@ const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
 
-    sphere.position.x = Math.cos(elapsedTime) * 1.5
-    sphere.position.z = Math.sin(elapsedTime) * 1.5
-    sphere.position.y = Math.abs(Math.sin(elapsedTime * 3))
+    // Update particles
+    // particles.rotation.y = elapsedTime * 0.01;
+    
+    for (let i = 0; i < count; i++) {
+        const i3 = i * 3;
+        const x = particlesGeometry.attributes.position.array[i3 + 0];
 
-    sphereShadow.position.x = sphere.position.x
-    sphereShadow.position.z = sphere.position.z
-    sphereShadow.material.opacity = (1 - sphere.position.y) * 0.6
-
+        particlesGeometry.attributes.position.array[i3 + 1] = Math.sin(elapsedTime + x); 
+    }
+    particlesGeometry.attributes.position.needsUpdate = true;
     // Update controls
     controls.update()
 
